@@ -2,3 +2,6 @@
 .DS_Store
 *.jpg
 *.png
+data/
+__pycache__/
+*.pyc

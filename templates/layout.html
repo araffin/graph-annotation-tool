@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Graph Annotation Tool | {{title}}</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/spectre.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/spectre-exp.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/spectre-icons.min.css') }}">
+
+  </head>
+  <body>
+    <section class="container container grid-lg">
+      {% block body %}{% endblock %}
+    </section>
+  </body>
+</html>

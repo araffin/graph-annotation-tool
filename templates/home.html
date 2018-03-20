@@ -1,0 +1,190 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="columns">
+  <div class="column col-12">
+    <h2 class="text-center">Graph Annotator</h2>
+  </div>
+  <div class="column col-6">
+    <div class="text-center">
+      <h3>Current Image</h3>
+      <div id="annotator"></div>
+    </div>
+  </div>
+  <div class="column col-6">
+    <div class="text-center">
+      <h3>Example</h3>
+      <div id="example"></div>
+    </div>
+  </div>
+  <div class="column col-6 mt-2">
+    <div id="message" class="toast text-center"></div>
+  </div>
+  <div class="column col-6">
+  </div>
+  <div class="column col-3 mt-2">
+    <a  id="prev" href="{{ url_for('home', idx=idx-1) }}" class="btn btn-primary btn-lg">
+      <i class="icon icon-arrow-left"></i> Previous
+    </a>
+  </div>
+  <div class="column col-6 text-center mt-2">
+    <button id="clear-button" class="btn btn-error">Clear</button>
+    <button id="download-button" class="btn btn-success" disabled="disabled">Export</button>
+  </div>
+  <div class="column col-3 mt-2">
+    <a id="next" href={{ url_for('home', idx=idx+1) }} class="btn btn-primary btn-lg">
+      Next <i class="icon icon-arrow-right"></i>
+    </a>
+  </div>
+  <div class="column col-12 mt-2">
+    <div class="bar" id="progressbar">
+      <div class="bar-item tooltip tooltip-bottom" data-tooltip="{{percent}}%" role="progressbar" style="width:{{percent}}%;">{{percent}}%</div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/graph-annotator.js') }}"></script>
+
+<script type="text/javascript">
+
+document.onkeydown = checkKey;
+
+// TODO: save on click
+function checkKey(e) {
+
+    e = e || window.event;
+
+    if (e.keyCode == '37') {
+       // left arrow
+       document.getElementById('prev').click();
+    }
+    else if (e.keyCode == '39') {
+       // right arrow
+       document.getElementById('next').click();
+    }
+    else if (e.keyCode == '83') {
+       // s key
+       saveLabels();
+    }
+
+}
+
+function saveLabels()
+{
+
+  let base_url = "/save_labels";
+  let url = base_url;
+  let request = new XMLHttpRequest();
+
+  request.open("POST", url, true);
+  request.setRequestHeader("Content-type", "application/json");
+
+  request.onload = function() {
+    if (request.status >= 200 && request.status < 400)
+    {
+      console.log("Ok")
+    }
+    else
+    {
+      // We reached our target server, but it returned an error
+      console.log("An error occured handling the request");
+    }
+  };
+
+  request.onerror = function() {
+    // There was a connection error of some sort
+    console.log("Connection Error");
+  };
+
+  let data = JSON.stringify({"test":3});
+  request.send(data);
+}
+
+  // Pose node definitions.
+  var nodes = [
+    {name: '1st_point'},
+    {name: '2nd_point'},
+    {name: '3rd_point'}
+  ];
+  // Pose edge definitions.
+  var edges = [
+    {index: [0,1], color: [0, 128, 255]},
+    {index: [1,2], color: [0, 255, 128]},
+  ];
+  var imageURL = 'static/img/{{image}}';
+
+  window.onload = function() {
+    // Create a frontal example.
+    var example = new GraphAnnotator('static/img/example.jpg', {
+      container: document.getElementById('example'),
+      graph: {
+        nodes: [
+          {position: [266, 236]},
+          {position: [229, 118]},
+          {position: [205, 38]},
+        ],
+        edges: edges
+      },
+      nodeColor: [255, 255, 255],
+      onload: function() {
+        // Highlight the first node.
+        this.setNodeAttributes(0, {color: [255, 0, 0], diameter:5});
+      }
+    });
+
+    // Create a main annotation.
+    var graph = { image: imageURL, nodes: nodes, edges: edges };
+    var annotator = new GraphAnnotator(imageURL, {
+      container: document.getElementById('annotator'),
+      graph: graph,
+      nodeColor: [255, 255, 255],
+      onload: function() {
+        document.getElementById('message').innerHTML = 'Click ' + nodes[0].name;
+      },
+      onselect: function(current_node) {
+        // Highlight the current node.
+        example.setNodeAttributes({color: null, diameter: 3});
+        this.setNodeAttributes(current_node, {color: [255, 0, 0], diameter: 5});
+        example.setNodeAttributes(current_node, {color: [255, 0, 0], diameter: 5});
+      },
+      onchange: function(current_node) {
+        // Reset the node style.
+        this.setNodeAttributes(current_node, {color: null, diameter: 3});
+        example.setNodeAttributes(current_node, {color: null, diameter: 3});
+        var nextNode = this.getNextNode();
+        if (nextNode === null) {
+          // Finished.
+          document.getElementById('message').innerHTML = 'Finished';
+          document.getElementById('download-button').removeAttribute('disabled')
+        }
+        else {
+          // Highlight the next node.
+          document.getElementById('message').innerHTML = 'Click ' + nodes[nextNode].name;
+          example.setNodeAttributes(nextNode, {color: [255, 0, 0], diameter: 5});
+        }
+        graph = this.getGraph();
+      }
+    });
+    // Set up the clear button.
+    document.getElementById('clear-button').addEventListener('click', function(event) {
+      annotator.setNodeAttributes({position: undefined});
+      example.setNodeAttributes({color: null, diameter: 3});
+      example.setNodeAttributes(0, {color: [255, 0, 0], diameter:5});
+      document.getElementById('message').innerHTML = 'Click ' + nodes[0].name;
+      document.getElementById('download-button').setAttribute('disabled', 'disabled');
+    });
+    // Set up the export button.
+    document.getElementById('download-button').addEventListener('click', function(event) {
+      var anchor = document.createElement('a');
+      var dataURL = 'data:application/json;charset=utf-8,' +
+                    encodeURIComponent(JSON.stringify(graph));
+      anchor.setAttribute('download', 'graph.json');
+      anchor.setAttribute('href', dataURL);
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    });
+  }
+</script>
+
+{% endblock %}
