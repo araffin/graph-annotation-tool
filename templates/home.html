@@ -6,7 +6,7 @@
   </div>
   <div class="column col-6">
     <div class="text-center">
-      <h3>Current Image</h3>
+      <h3>Current Image ({{idx + 1}}/{{total}})</h3>
       <div id="annotator"></div>
     </div>
   </div>
@@ -55,22 +55,39 @@ function checkKey(e) {
 
     if (e.keyCode == '37') {
        // left arrow
-       document.getElementById('prev').click();
+       let callback = function(){document.getElementById('prev').click()};
+       saveLabels(callback);
     }
     else if (e.keyCode == '39') {
        // right arrow
-       document.getElementById('next').click();
+        let callback = function(){document.getElementById('next').click()};
+       saveLabels(callback);
+
     }
     else if (e.keyCode == '83') {
        // s key
-       saveLabels();
+       saveLabels(false);
     }
 
 }
 
-function saveLabels()
+function saveLabels(callback)
 {
 
+  labels = []
+  for (let i = 0; i < window.graph.nodes.length; i++) {
+    let node = window.graph.nodes[i];
+    if (node.hasOwnProperty("position")) {
+      labels.push(node.position);
+    }
+  }
+  if (labels.length == 0)
+  {
+    if (callback != false) {
+      callback();
+    }
+    return;
+  }
   let base_url = "/save_labels";
   let url = base_url;
   let request = new XMLHttpRequest();
@@ -81,7 +98,9 @@ function saveLabels()
   request.onload = function() {
     if (request.status >= 200 && request.status < 400)
     {
-      console.log("Ok")
+      if (callback != false) {
+        callback();
+      }
     }
     else
     {
@@ -95,7 +114,7 @@ function saveLabels()
     console.log("Connection Error");
   };
 
-  let data = JSON.stringify({"test":3});
+  let data = JSON.stringify({"values": labels, "idx":"{{idx}}"});
   request.send(data);
 }
 
@@ -105,12 +124,19 @@ function saveLabels()
     {name: '2nd_point'},
     {name: '3rd_point'}
   ];
+
+  {% if label|length > 0 %}
+    {% for position in label %}
+      nodes[{{loop.index - 1}}].position = {{position}};
+    {% endfor %}
+  {% endif %}
+
   // Pose edge definitions.
   var edges = [
     {index: [0,1], color: [0, 128, 255]},
     {index: [1,2], color: [0, 255, 128]},
   ];
-  var imageURL = 'static/img/{{image}}';
+  var imageURL = '{{image}}';
 
   window.onload = function() {
     // Create a frontal example.
@@ -133,6 +159,7 @@ function saveLabels()
 
     // Create a main annotation.
     var graph = { image: imageURL, nodes: nodes, edges: edges };
+    window.graph = graph;
     var annotator = new GraphAnnotator(imageURL, {
       container: document.getElementById('annotator'),
       graph: graph,
