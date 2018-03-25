@@ -15,10 +15,12 @@ It is an annotation web app built on that project : [https://github.com/kyamagu/
 ### Instructions
 1. Put your images (.jpg) in a folder in the directory `static/img/`
 
-2. Edit the config line 14-15 of `app.py` to match your dataset:
-```python
-DATASET_NAME = "tanker"
-DATASET_FOLDER = "static/img/tanker/"
+2. Edit the config file `config.json` to match your dataset.
+If your dataset folder is named `my_dataset` (path: `static/img/my_dataset/`):
+```json
+{
+  "DATASET_NAME": "my_dataset"
+}
 ```
 
 ### Launch the server
