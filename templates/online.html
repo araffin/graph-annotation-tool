@@ -4,6 +4,8 @@
   <div class="column col-12">
     <h2 class="text-center">Graph Annotator</h2>
   </div>
+
+  <!-- Image to annotate -->
   <div class="column col-6">
     <div class="text-center">
       <h3>Current Image ({{idx + 1}}/{{total}})</h3>
@@ -12,6 +14,8 @@
       </div>
     </div>
   </div>
+
+  <!-- Video -->
   <div class="column col-6">
     <div class="text-center">
       <h3>Video</h3>
@@ -19,13 +23,17 @@
       </video>
     </div>
   </div>
+
+  <!-- Info messages -->
   <div class="column col-6 mt-2">
     <div id="message" class="toast text-center">Please select a video (.mp4)</div>
   </div>
   <div class="column col-6">
   </div>
+
+  <!-- Navigation and form input -->
   <div class="column col-3 mt-2">
-    <a  id="prev" href="{{ url_for('home', idx=idx-1) }}" class="btn btn-primary btn-lg">
+    <a  id="prev" href="#" class="btn btn-primary btn-lg">
       <i class="icon icon-arrow-left"></i> Previous
     </a>
   </div>
@@ -41,20 +49,20 @@
     <button id="download-button" class="btn btn-success" disabled="disabled">Export</button>
   </div> -->
   <div class="column col-2 mt-2">
-    <a id="next" href="{{ url_for('home', idx=idx+1) }}" class="btn btn-primary btn-lg">
+    <a id="next" href="#" class="btn btn-primary btn-lg">
       Next <i class="icon icon-arrow-right"></i>
     </a>
   </div>
 
+  <!-- Progressbar -->
   <div class="column col-12 mt-2">
     <div class="bar" id="progressbar">
       <div class="bar-item tooltip tooltip-bottom" data-tooltip="{{percent}}%" role="progressbar" style="width:{{percent}}%;">{{percent}}%</div>
     </div>
   </div>
 </div>
-<div id="image-div">
 
-</div>
+<!-- Canvas used to extract current frame from the video -->
 <canvas id="image-canvas"></canvas>
 
 <script type="text/javascript" src="{{ url_for('static', filename='js/graph-annotator.js') }}"></script>
@@ -63,7 +71,7 @@
 
 document.onkeydown = checkKey;
 
-let fps = 30.0;
+let fps = 25.0;
 
 // TODO: save on click
 function checkKey(e) {
@@ -76,14 +84,12 @@ function checkKey(e) {
     if (e.keyCode == '37') {
        // left arrow
        video.currentTime = Math.max(0, video.currentTime - 1 / fps);
-       // let callback = function(){document.getElementById('prev').click()};
        // saveLabels(callback);
     }
     else if (e.keyCode == '39') {
        // right arrow
        let prevTime = video.currentTime;
        video.currentTime = Math.min(video.duration - 1 / fps, video.currentTime + 1 / fps);
-       //  let callback = function(){document.getElementById('next').click()};
        // saveLabels(callback);
 
     }
@@ -141,7 +147,7 @@ function saveLabels(callback)
     console.log("Connection Error");
   };
 
-  let data = JSON.stringify({"values": labels, "idx":"{{idx}}"});
+  let data = JSON.stringify({"values": labels, "idx":"{{idx}}", "dataset": "to_be_defined"});
   request.send(data);
 }
 
@@ -165,41 +171,45 @@ let edges = [
 ];
 let imageURL = '{{image}}';
 
+// Capture the current frame from the video
 function capture(){
   let video = document.getElementById('video');
   let canvas = document.getElementById('image-canvas');
+  // Update canvas aspect
   canvas.width  = video.videoWidth;
   canvas.height = video.videoHeight;
-  let img = document.getElementById('image-div');
+  // Update current image:
+  // extract the image from the video
+  // and replace the current image source
+  // by a new one (dataURL of the canvas image)
   document.querySelector("#annotator img").src = draw(video, canvas);
 };
 
-
+// Extract an image from video
+// by drawing it in a canvas
 function draw(video, canvas) {
     let context = canvas.getContext('2d');
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // let dataURL = canvas.toDataURL();
+    // Convert the image to dataURL
     return canvas.toDataURL("image/jpg")
 }
 
 window.onload = function() {
-
-
-  let video = document.getElementById('video');
+  // Hide canvas
   let canvas = document.getElementById('image-canvas');
   canvas.style.display = 'none';
 
+  // Retrieve video from form input
   document.getElementById('upload-file').addEventListener('change', function() {
-    	let file;
-    	let destination = document.getElementById('video');
-  		file = this.files[0];
+    	let video = document.getElementById('video');
+      // TODO: check that this is a mp4 file
+  		let file = this.files[0];
 
   		let reader = new FileReader();
 
   		reader.onload = function(e) {
-  			destination.src = e.target.result; // File contents here
-
+        // Replace current video with a new one
+  			video.src = e.target.result;
   		};
 
   		reader.readAsDataURL(file);
