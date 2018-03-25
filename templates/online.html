@@ -1,0 +1,259 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="columns">
+  <div class="column col-12">
+    <h2 class="text-center">Graph Annotator</h2>
+  </div>
+  <div class="column col-6">
+    <div class="text-center">
+      <h3>Current Image ({{idx + 1}}/{{total}})</h3>
+      <div id="annotator">
+        <img src="" alt="">
+      </div>
+    </div>
+  </div>
+  <div class="column col-6">
+    <div class="text-center">
+      <h3>Video</h3>
+      <video id="video" loop controls src="" type="video/mp4">
+      </video>
+    </div>
+  </div>
+  <div class="column col-6 mt-2">
+    <div id="message" class="toast text-center">Please select a video (.mp4)</div>
+  </div>
+  <div class="column col-6">
+  </div>
+  <div class="column col-3 mt-2">
+    <a  id="prev" href="{{ url_for('home', idx=idx-1) }}" class="btn btn-primary btn-lg">
+      <i class="icon icon-arrow-left"></i> Previous
+    </a>
+  </div>
+  <div class="column col-7 mt-2">
+    <div class="input-group">
+      <span class="input-group-addon">Video File</span>
+      <input class="form-input" type="file" id="upload-file"/>
+      <button onclick="capture()" class="btn btn-success input-group-btn btn-lg">Capture</button>
+    </div>
+  </div>
+  <!-- <div class="column col-6 text-center mt-2">
+    <button id="clear-button" class="btn btn-error">Clear</button>
+    <button id="download-button" class="btn btn-success" disabled="disabled">Export</button>
+  </div> -->
+  <div class="column col-2 mt-2">
+    <a id="next" href="{{ url_for('home', idx=idx+1) }}" class="btn btn-primary btn-lg">
+      Next <i class="icon icon-arrow-right"></i>
+    </a>
+  </div>
+
+  <div class="column col-12 mt-2">
+    <div class="bar" id="progressbar">
+      <div class="bar-item tooltip tooltip-bottom" data-tooltip="{{percent}}%" role="progressbar" style="width:{{percent}}%;">{{percent}}%</div>
+    </div>
+  </div>
+</div>
+<div id="image-div">
+
+</div>
+<canvas id="image-canvas"></canvas>
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/graph-annotator.js') }}"></script>
+
+<script type="text/javascript">
+
+document.onkeydown = checkKey;
+
+let fps = 30.0;
+
+// TODO: save on click
+function checkKey(e) {
+
+    e = e || window.event;
+
+    let video = document.getElementById("video");
+    let prevTime = video.currentTime;
+
+    if (e.keyCode == '37') {
+       // left arrow
+       video.currentTime = Math.max(0, video.currentTime - 1 / fps);
+       // let callback = function(){document.getElementById('prev').click()};
+       // saveLabels(callback);
+    }
+    else if (e.keyCode == '39') {
+       // right arrow
+       let prevTime = video.currentTime;
+       video.currentTime = Math.min(video.duration - 1 / fps, video.currentTime + 1 / fps);
+       //  let callback = function(){document.getElementById('next').click()};
+       // saveLabels(callback);
+
+    }
+    else if (e.keyCode == '83') {
+       // s key
+       // saveLabels(false);
+    }
+
+    if(prevTime != video.currentTime)
+    {
+      capture();
+    }
+}
+
+function saveLabels(callback)
+{
+
+  labels = []
+  for (let i = 0; i < window.graph.nodes.length; i++) {
+    let node = window.graph.nodes[i];
+    if (node.hasOwnProperty("position")) {
+      labels.push(node.position);
+    }
+  }
+  if (labels.length == 0)
+  {
+    if (callback != false) {
+      callback();
+    }
+    return;
+  }
+  let base_url = "/save_labels";
+  let url = base_url;
+  let request = new XMLHttpRequest();
+
+  request.open("POST", url, true);
+  request.setRequestHeader("Content-type", "application/json");
+
+  request.onload = function() {
+    if (request.status >= 200 && request.status < 400)
+    {
+      if (callback != false) {
+        callback();
+      }
+    }
+    else
+    {
+      // We reached our target server, but it returned an error
+      console.log("An error occured handling the request");
+    }
+  };
+
+  request.onerror = function() {
+    // There was a connection error of some sort
+    console.log("Connection Error");
+  };
+
+  let data = JSON.stringify({"values": labels, "idx":"{{idx}}"});
+  request.send(data);
+}
+
+// Pose node definitions.
+let nodes = [
+  {name: '1st_point'},
+  {name: '2nd_point'},
+  {name: '3rd_point'}
+];
+
+{% if label|length > 0 %}
+  {% for position in label %}
+    nodes[{{loop.index - 1}}].position = {{position}};
+  {% endfor %}
+{% endif %}
+
+// Pose edge definitions.
+let edges = [
+  {index: [0,1], color: [0, 128, 255]},
+  {index: [1,2], color: [0, 255, 128]},
+];
+let imageURL = '{{image}}';
+
+function capture(){
+  let video = document.getElementById('video');
+  let canvas = document.getElementById('image-canvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  let img = document.getElementById('image-div');
+  document.querySelector("#annotator img").src = draw(video, canvas);
+};
+
+
+function draw(video, canvas) {
+    let context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // let dataURL = canvas.toDataURL();
+    return canvas.toDataURL("image/jpg")
+}
+
+window.onload = function() {
+
+
+  let video = document.getElementById('video');
+  let canvas = document.getElementById('image-canvas');
+  canvas.style.display = 'none';
+
+  document.getElementById('upload-file').addEventListener('change', function() {
+    	let file;
+    	let destination = document.getElementById('video');
+  		file = this.files[0];
+
+  		let reader = new FileReader();
+
+  		reader.onload = function(e) {
+  			destination.src = e.target.result; // File contents here
+
+  		};
+
+  		reader.readAsDataURL(file);
+  	});
+  //
+  // // Create a main annotation.
+  // let graph = { image: imageURL, nodes: nodes, edges: edges };
+  // window.graph = graph;
+  // let annotator = new GraphAnnotator(imageURL, {
+  //   container: document.getElementById('annotator'),
+  //   graph: graph,
+  //   nodeColor: [255, 255, 255],
+  //   onload: function() {
+  //     document.getElementById('message').innerHTML = 'Click ' + nodes[0].name;
+  //   },
+  //   onselect: function(current_node) {
+  //     // Highlight the current node.
+  //     this.setNodeAttributes(current_node, {color: [255, 0, 0], diameter: 5});
+  //   },
+  //   onchange: function(current_node) {
+  //     // Reset the node style.
+  //     this.setNodeAttributes(current_node, {color: null, diameter: 3});
+  //     let nextNode = this.getNextNode();
+  //     if (nextNode === null) {
+  //       // Finished.
+  //       document.getElementById('message').innerHTML = 'Finished';
+  //       document.getElementById('download-button').removeAttribute('disabled')
+  //     }
+  //     else {
+  //       // Highlight the next node.
+  //       document.getElementById('message').innerHTML = 'Click ' + nodes[nextNode].name;
+  //     }
+  //     graph = this.getGraph();
+  //   }
+  // });
+  // Set up the clear button.
+  // document.getElementById('clear-button').addEventListener('click', function(event) {
+  //   annotator.setNodeAttributes({position: undefined});
+  //   document.getElementById('message').innerHTML = 'Click ' + nodes[0].name;
+  //   document.getElementById('download-button').setAttribute('disabled', 'disabled');
+  // });
+  // // Set up the export button.
+  // document.getElementById('download-button').addEventListener('click', function(event) {
+  //   let anchor = document.createElement('a');
+  //   let dataURL = 'data:application/json;charset=utf-8,' +
+  //                 encodeURIComponent(JSON.stringify(graph));
+  //   anchor.setAttribute('download', 'graph.json');
+  //   anchor.setAttribute('href', dataURL);
+  //   anchor.style.display = 'none';
+  //   document.body.appendChild(anchor);
+  //   anchor.click();
+  //   document.body.removeChild(anchor);
+  // });
+}
+</script>
+
+{% endblock %}

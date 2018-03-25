@@ -45,5 +45,13 @@ def save_labels():
         json.dump(labels, f)
     return jsonify(status="ok", label=label)
 
+@app.route("/online", methods=["GET"])
+def online():
+    image = images_path[0]
+    percent = 0
+    label = []
+    return render_template('online.html', idx=0, total=len(images), image=image, percent=percent, label=label)
+
+
 if __name__ == '__main__':
     app.run(port=port)
