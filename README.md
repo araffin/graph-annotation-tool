@@ -12,6 +12,15 @@ It is an annotation web app built on that project : [https://github.com/kyamagu/
 - numpy
 - gunicorn for multiprocess server
 
+### Instructions
+1. Put your images (.jpg) in a folder in the directory `static/img/`
+
+2. Edit the config line 14-15 of `app.py` to match your dataset:
+```python
+DATASET_NAME = "tanker"
+DATASET_FOLDER = "static/img/tanker/"
+```
+
 ### Launch the server
 
 ```
