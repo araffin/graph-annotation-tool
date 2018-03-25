@@ -11,8 +11,8 @@ app = Flask(__name__)
 app.config['DEBUG'] = True
 port = 5000
 
-DATASET_NAME = "ironcar_train"
-DATASET_FOLDER = "static/img/ironcar_train/"
+DATASET_NAME = json.load(open("config.json", "r"))['DATASET_NAME']
+DATASET_FOLDER = "static/img/{}/".format(DATASET_NAME)
 
 images = [f for f in os.listdir(DATASET_FOLDER) if f.endswith('.jpg')]
 images.sort(key=lambda name: int(name.split('.jpg')[0]))

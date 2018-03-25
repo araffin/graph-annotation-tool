@@ -5,3 +5,5 @@
 data/
 __pycache__/
 *.pyc
+videos/
+img/
