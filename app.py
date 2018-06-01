@@ -1,8 +1,9 @@
 from __future__ import print_function, division
+import argparse
 import json
 import os
-import numpy as np
 
+import numpy as np
 from flask import Flask, request, session, render_template, jsonify
 
 
@@ -12,17 +13,21 @@ app.config['DEBUG'] = True
 port = 5000
 
 DATASET_NAME = json.load(open("config.json", "r"))['DATASET_NAME']
-DATASET_FOLDER = "static/img/{}/".format(DATASET_NAME)
 
-images = [f for f in os.listdir(DATASET_FOLDER) if f.endswith('.jpg')]
-images.sort(key=lambda name: int(name.split('.jpg')[0]))
-images_path = [DATASET_FOLDER + im for im in images]
-labels = {}
-try:
-    with open('data/{}_labels.json'.format(DATASET_NAME), 'r') as f:
-        labels = json.load(f)
-except IOError:
-    pass
+def loadImages(dataset_name):
+    global images, labels, images_path, DATASET_NAME
+    DATASET_NAME = dataset_name
+    DATASET_FOLDER = "static/img/{}/".format(DATASET_NAME)
+
+    images = [f for f in os.listdir(DATASET_FOLDER) if f.endswith('.jpg')]
+    images.sort(key=lambda name: int(name.split('.jpg')[0]))
+    images_path = [DATASET_FOLDER + im for im in images]
+    labels = {}
+    try:
+        with open('data/{}_labels.json'.format(DATASET_NAME), 'r') as f:
+            labels = json.load(f)
+    except IOError:
+        pass
 
 @app.route("/", methods=["GET"])
 def home():
@@ -30,10 +35,10 @@ def home():
     idx = np.clip(idx, 0, len(images) - 1)
     image = images_path[idx]
     percent = round(100 * ((idx + 1) / len(images)), 0)
-    label = labels.get(images[idx], None)
-    if label is None:
-        # get previous image label
-        label = labels.get(images[idx - 1], [])
+    label = labels.get(images[idx], [])
+    # if label is None:
+    #     # get previous image label
+    #     label = labels.get(images[idx - 1], [])
     return render_template('home.html', idx=idx, total=len(images), image=image, percent=percent, label=label)
 
 @app.route("/save_labels", methods=["POST"])
@@ -54,4 +59,8 @@ def online():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Train a line detector')
+    parser.add_argument('-n', '--name', help='Dataset name', type=str, default=DATASET_NAME)
+    args = parser.parse_args()
+    loadImages(args.name)
     app.run(port=port)
