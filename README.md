@@ -10,26 +10,15 @@ It is an annotation web app built on that project : [https://github.com/kyamagu/
 ### Dependencies
 - Flask
 - numpy
-- gunicorn for multiprocess server
 
 ### Instructions
 1. Put your images (.jpg) in a folder in the directory `static/img/`
 
-2. Edit the config file `config.json` to match your dataset.
-If your dataset folder is named `my_dataset` (path: `static/img/my_dataset/`):
-```json
-{
-  "DATASET_NAME": "my_dataset"
-}
-```
-
-### Launch the server
+2. Launch the server passing as argument the name of the dataset folder (here `test_dataset`)
 
 ```
-python app.py
+python app.py -n test_dataset
 ```
 
-or
-```
-./start.sh
-```
+3. Start labelling at [http://127.0.0.1:5000/](http://127.0.0.1:5000/) !
+The labels are saved when passing to previous/next image, the labels are stored in the `data/` folder.

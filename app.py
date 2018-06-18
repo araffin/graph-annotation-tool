@@ -11,8 +11,8 @@ app = Flask(__name__)
 # app.config.from_object('api.config')
 app.config['DEBUG'] = True
 port = 5000
-
-DATASET_NAME = json.load(open("config.json", "r"))['DATASET_NAME']
+# Default dataset
+DATASET_NAME = "test_dataset"
 
 def loadImages(dataset_name):
     global images, labels, images_path, DATASET_NAME
@@ -45,7 +45,14 @@ def home():
 def save_labels():
     label = json.loads(request.data.decode('utf8'))
     global labels
-    labels[images[int(label['idx'])]] = label['values']
+    key = images[int(label['idx'])]
+    # Delete incomplete labels
+    if None in label['values'] and key in labels:
+        del labels[key]
+    else:
+        # Save only labels with 3 labels (3 points)
+        if len(label['values']) == 3:
+            labels[key] = label['values']
     with open('data/{}_labels.json'.format(DATASET_NAME), 'w') as f:
         json.dump(labels, f)
     return jsonify(status="ok", label=label)
