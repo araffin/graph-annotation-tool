@@ -1,91 +1,97 @@
 import argparse
 import json
 import os
+from typing import List, Dict
 
 import numpy as np
 from flask import Flask, jsonify, render_template, request
 
-app = Flask(__name__)
-# app.config.from_object('api.config')
-app.config["DEBUG"] = True
-port = 5000
-# Default dataset
-DATASET_NAME = "test_dataset"
 
+class MainApp:
+    images_path: List[str]
+    images: List[str]
+    labels: Dict[str, List[int]]
 
-def load_images(dataset_name):
-    global images, labels, images_path, DATASET_NAME
-    DATASET_NAME = dataset_name
-    DATASET_FOLDER = f"static/img/{DATASET_NAME}/"
+    def __init__(self, dataset_name: str = "test_dataset", port: int = 5000) -> None:
+        self.dataset_name = dataset_name
+        self.dataset_folder = f"static/img/{self.dataset_name}/"
+        self.app = Flask(__name__)
+        self.app.config["DEBUG"] = True
+        self.load_images()
+        self.port = port
 
-    images = [f for f in os.listdir(DATASET_FOLDER) if f.endswith(".jpg")]
-    images.sort(key=lambda name: int(name.split(".jpg")[0]))
-    images_path = [DATASET_FOLDER + im for im in images]
-    labels = {}
-    try:
-        with open(f"data/{DATASET_NAME}_labels.json") as f:
-            labels = json.load(f)
-    except OSError:
-        pass
+        # Register routes
+        self.app.add_url_rule("/", "home", self.home, methods=["GET"])
+        self.app.add_url_rule(
+            "/save_labels", "save_labels", self.save_labels, methods=["POST"]
+        )
+        self.app.add_url_rule("/online", "online", self.online, methods=["GET"])
 
+    def run(self) -> None:
+        self.app.run(port=self.port)
 
-@app.route("/", methods=["GET"])
-def home():
-    idx = int(request.args.get("idx", 0))
-    idx = np.clip(idx, 0, len(images) - 1)
-    image = images_path[idx]
-    percent = round(100 * ((idx + 1) / len(images)), 0)
-    label = labels.get(images[idx], [])
-    # if label is None:
-    #     # get previous image label
-    #     label = labels.get(images[idx - 1], [])
-    return render_template(
-        "home.html",
-        idx=idx,
-        total=len(images),
-        image=image,
-        percent=percent,
-        label=label,
-    )
+    def load_images(self) -> None:
+        self.images = [f for f in os.listdir(self.dataset_folder) if f.endswith(".jpg")]
+        self.images.sort(key=lambda name: int(name.split(".jpg")[0]))
+        self.images_path = [self.dataset_folder + im for im in self.images]
+        self.labels = {}
+        try:
+            with open(f"data/{self.dataset_name}_labels.json") as f:
+                self.labels = json.load(f)
+        except OSError:
+            pass
 
+    def home(self) -> str:
+        idx = int(request.args.get("idx", 0))
+        idx = np.clip(idx, 0, len(self.images) - 1)
+        image = self.images_path[idx]
+        percent = round(100 * ((idx + 1) / len(self.images)), 0)
+        label: List[int] = self.labels.get(self.images[idx], [])
+        # if label is None:
+        #     # get previous image label
+        #     label = labels.get(self.images[idx - 1], [])
+        return render_template(
+            "home.html",
+            idx=idx,
+            total=len(self.images),
+            image=image,
+            percent=percent,
+            label=label,
+        )
 
-@app.route("/save_labels", methods=["POST"])
-def save_labels():
-    label = json.loads(request.data.decode("utf8"))
-    global labels
-    key = images[int(label["idx"])]
-    # Delete incomplete labels
-    if None in label["values"] and key in labels:
-        del labels[key]
-    else:
-        # Save only labels with 3 labels (3 points)
-        if len(label["values"]) == 3:
-            labels[key] = label["values"]
-    with open(f"data/{DATASET_NAME}_labels.json", "w") as f:
-        json.dump(labels, f)
-    return jsonify(status="ok", label=label)
+    def save_labels(self):
+        label = json.loads(request.data.decode("utf8"))
+        key = self.images[int(label["idx"])]
+        # Delete incomplete labels
+        if None in label["values"] and key in self.labels:
+            del self.labels[key]
+        else:
+            # Save only labels with 3 labels (3 points)
+            if len(label["values"]) == 3:
+                self.labels[key] = label["values"]
+        with open(f"data/{self.dataset_name}_labels.json", "w") as f:
+            json.dump(self.labels, f)
+        return jsonify(status="ok", label=label)
 
-
-@app.route("/online", methods=["GET"])
-def online():
-    image = images_path[0]
-    percent = 0
-    label = []
-    return render_template(
-        "online.html",
-        idx=0,
-        total=len(images),
-        image=image,
-        percent=percent,
-        label=label,
-    )
+    def online(self) -> str:
+        image = self.images_path[0]
+        percent = 0
+        label: List[int] = []
+        return render_template(
+            "online.html",
+            idx=0,
+            total=len(self.images),
+            image=image,
+            percent=percent,
+            label=label,
+        )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a line detector")
     parser.add_argument(
-        "-n", "--name", help="Dataset name", type=str, default=DATASET_NAME
+        "-n", "--name", help="Dataset name", type=str, default="test_dataset"
     )
     args = parser.parse_args()
-    load_images(args.name)
-    app.run(port=port)
+    app = MainApp(args.name)
+    app.run()

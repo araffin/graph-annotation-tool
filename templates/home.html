@@ -191,7 +191,7 @@ function saveLabels(callback)
         if (nextNode === null) {
           // Finished.
           document.getElementById('message').innerHTML = 'Finished';
-          document.getElementById('download-button').removeAttribute('disabled')
+          // document.getElementById('download-button').removeAttribute('disabled')
         }
         else {
           // Highlight the next node.
@@ -207,20 +207,20 @@ function saveLabels(callback)
       example.setNodeAttributes({color: null, diameter: 3});
       example.setNodeAttributes(0, {color: [255, 0, 0], diameter:5});
       document.getElementById('message').innerHTML = 'Click ' + nodes[0].name;
-      document.getElementById('download-button').setAttribute('disabled', 'disabled');
+      // document.getElementById('download-button').setAttribute('disabled', 'disabled');
     });
     // Set up the export button.
-    document.getElementById('download-button').addEventListener('click', function(event) {
-      var anchor = document.createElement('a');
-      var dataURL = 'data:application/json;charset=utf-8,' +
-                    encodeURIComponent(JSON.stringify(graph));
-      anchor.setAttribute('download', 'graph.json');
-      anchor.setAttribute('href', dataURL);
-      anchor.style.display = 'none';
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-    });
+    // document.getElementById('download-button').addEventListener('click', function(event) {
+    //   var anchor = document.createElement('a');
+    //   var dataURL = 'data:application/json;charset=utf-8,' +
+    //                 encodeURIComponent(JSON.stringify(graph));
+    //   anchor.setAttribute('download', 'graph.json');
+    //   anchor.setAttribute('href', dataURL);
+    //   anchor.style.display = 'none';
+    //   document.body.appendChild(anchor);
+    //   anchor.click();
+    //   document.body.removeChild(anchor);
+    // });
   }
 </script>
 
